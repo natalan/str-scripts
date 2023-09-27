@@ -1,0 +1,11 @@
+# Default ignored files
+/.idea/
+/.idea/scopes/
+npm-debug.log
+/node_modules
+/shelf/
+/workspace.xml
+.env
+node_modules/
+keys.json
+*.iml
