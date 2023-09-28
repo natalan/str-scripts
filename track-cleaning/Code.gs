@@ -4,15 +4,16 @@ const fetchICal = () => {
     const airbnbContent = UrlFetchApp.fetch("AIRBNB_iCAL").getContentText();
     const vrboContent = UrlFetchApp.fetch("VRBO_iCAL").getContentText();
     const bookingContent = UrlFetchApp.fetch("BOOKING_iCAL").getContentText();
+
     return {
-      Airbnb: parseICal(airbnbContent),
-      VRBO: parseICal(vrboContent),
-      Booking: parseICal(bookingContent),
-    };
-  } catch (error) {
-    Logger.log('Error in fetchICal: ' + error.toString());
-    return null;
-  }
+       Airbnb: parseICal(airbnbContent, (event) => event.summary !== "Airbnb (Not available)"),
+       VRBO: parseICal(vrboContent),
+       Booking: parseICal(bookingContent),
+     };
+   } catch (error) {
+     Logger.log('Error in fetchICal: ' + error.toString());
+     return null;
+   }
 };
 
 const parseICalDate = (dateStr, hours) => {
@@ -26,7 +27,7 @@ const parseICalDate = (dateStr, hours) => {
   return date;
 };
 
-const parseICal = (icalContent) => {
+const parseICal = (icalContent, filterFn = () => true) => {
   const lines = icalContent.split('\n');
   const events = [];
   let currentEvent = null;
@@ -47,8 +48,13 @@ const parseICal = (icalContent) => {
       case trimmedLine.startsWith('UID'):
         currentEvent.uid = trimmedLine.split(':')[1];
         break;
+      case trimmedLine.startsWith('SUMMARY'):
+        currentEvent.summary = trimmedLine.split(':')[1];
+        break;
       case trimmedLine === 'END:VEVENT':
-        events.push(currentEvent);
+        if (filterFn(currentEvent)) {
+          events.push(currentEvent);
+        }
         currentEvent = null;
         break;
       default:
@@ -56,6 +62,7 @@ const parseICal = (icalContent) => {
     }
   });
 
+  Logger.log(events);
   return events;
 };
 
@@ -64,25 +71,31 @@ const setConditionalFormatting = (sheet, startRow, numRows) => {
   const range = sheet.getRange(startRow, 5, numRows, 1); // Column 5 is the "Status" column
 
   const rule1 = SpreadsheetApp.newConditionalFormatRule()
-    .whenTextEqualTo('Tentative')
-    .setBackground('#FFFFCC')
-    .setRanges([range])
-    .build();
+      .whenTextEqualTo('Tentative')
+      .setBackground('#FFFFCC')
+      .setRanges([range])
+      .build();
 
   const rule2 = SpreadsheetApp.newConditionalFormatRule()
-    .whenTextEqualTo('Confirmed')
-    .setBackground('#CCFFCC')
-    .setRanges([range])
-    .build();
+      .whenTextEqualTo('Confirmed')
+      .setBackground('#CCFFCC')
+      .setRanges([range])
+      .build();
 
   const rule3 = SpreadsheetApp.newConditionalFormatRule()
-    .whenTextEqualTo('Cleaning Completed')
-    .setBackground('#CCCCFF')
-    .setRanges([range])
-    .build();
+      .whenTextEqualTo('Cleaning Completed')
+      .setBackground('#CCCCFF')
+      .setRanges([range])
+      .build();
+
+  const rule4 = SpreadsheetApp.newConditionalFormatRule()
+      .whenTextEqualTo('Canceled')
+      .setBackground('#CCCCCC')
+      .setRanges([range])
+      .build();
 
   const rules = sheet.getConditionalFormatRules();
-  rules.push(rule1, rule2, rule3);
+  rules.push(rule1, rule2, rule3, rule4);
   sheet.setConditionalFormatRules(rules);
 };
 
@@ -97,12 +110,16 @@ const updateSpreadsheet = (data) => {
     sheet.setFrozenRows(1);
   }
 
+  const now = new Date(); // Current date-time
   const existingData = sheet.getRange(2, 1, sheet.getLastRow(), 5).getValues();
   const newData = [];
 
-  for (const [source, bookings] of Object.entries(data)) {
-    for (const booking of bookings) {
+  // Create a set containing all new UIDs
+  const newUids = new Set();
+  Object.entries(data).forEach(([source, bookings]) => {
+    bookings.forEach((booking) => {
       const uid = booking.uid;
+      newUids.add(uid);
       const existingRow = existingData.find(row => row[1] === uid);
       if (!existingRow) {
         const checkIn = new Date(booking.checkIn);
@@ -110,6 +127,22 @@ const updateSpreadsheet = (data) => {
 
         newData.push([source, uid, checkIn, checkOut, 'Tentative']);
       }
+    });
+  });
+
+  Logger.log(`Received ${newUids.size} bookings`);
+
+
+  // Update past and canceled bookings based on current date-time
+  for (let i = 0; i < existingData.length; i++) {
+    const row = existingData[i];
+    const uid = row[1];
+    const checkOut = new Date(row[3]);
+
+    // Mark as 'Canceled' if UID is not found in new data
+    if (!newUids.has(uid) && checkOut > now && row[4] !== 'Canceled') {
+      sheet.getRange(i + 2, 5).setValue('Canceled');
+      Logger.log(`Found canceled booking: ${uid}`);
     }
   }
 
@@ -123,8 +156,8 @@ const updateSpreadsheet = (data) => {
 
     // Add data validation for Status column for new rows
     const rule = SpreadsheetApp.newDataValidation()
-                                .requireValueInList(['Tentative', 'Confirmed', 'Cleaning Completed'])
-                                .build();
+        .requireValueInList(['Tentative', 'Confirmed', 'Cleaning Completed', 'Canceled'])
+        .build();
     sheet.getRange(startRow, 5, newData.length, 1).setDataValidation(rule);
 
     // Call the function to set conditional formatting
@@ -142,8 +175,3 @@ const main = () => {
   const data = fetchICal();
   updateSpreadsheet(data);
 };
-
-ScriptApp.newTrigger('main')
-  .timeBased()
-  .everyMinutes(60)
-  .create();
