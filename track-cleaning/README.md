@@ -2,6 +2,9 @@
 
 This script automatically fetches iCal data from Airbnb, VRBO, and Booking.com and updates it into a Google Spreadsheet. The spreadsheet includes booking details like UID, Check-In and Check-Out dates, and Status (Tentative, Confirmed, Cleaning Completed).
 
+<img width="1512" alt="image" src="https://github.com/natalan/str-scripts/assets/276187/c47ec8a4-a896-448e-9162-7db2d778618a">
+
+
 ## Requirements
 
 - Google Apps Script environment
