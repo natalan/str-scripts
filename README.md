@@ -1,0 +1,1 @@
+Collection of scripts to automate certain aspects of short term rentals
