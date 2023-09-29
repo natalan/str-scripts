@@ -1,6 +1,7 @@
 {
   "name": "STR scripts",
   "version": "1.0.0",
-  "dependencies": {
+  "devDependencies": {
+    "eslint": "^8.50.0"
   }
 }

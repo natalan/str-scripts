@@ -28,6 +28,7 @@ This script automatically fetches iCal data from Airbnb, VRBO, and Booking.com a
 - Parse iCal dates.
 - Add new booking records to a Google Spreadsheet.
 - Update existing booking records.
+- Handle the case when bookings are cancelled and consequently not included in future iCal payloads.
 - Validate and format data in Google Spreadsheet.
 
 

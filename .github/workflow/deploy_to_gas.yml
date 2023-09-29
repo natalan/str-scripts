@@ -1,0 +1,40 @@
+name: Deploy to Google Apps Script
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Use Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Replace placeholders with secrets
+        run: |
+          sed -i "s/__AIRBNB_URL__/${{ env.AIRBNB_URL }}/g" track-cleaning/Code.js
+          sed -i "s/__VRBO_URL__/${{ env.VRBO_URL }}/g" track-cleaning/Code.js
+          sed -i "s/__BOOKING_URL__/${{ env.BOOKING_URL }}/g" track-cleaning/Code.js
+
+      - name: Install Clasp
+        run: npm install -g @google/clasp
+
+      - name: Log in to Clasp
+        env:
+          CLASP_GCP_SA: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          cd track-cleaning
+          echo "$CLASP_GCP_SA" > ~/.clasprc.json
+
+      - name: Push to Google Apps Script
+        run: |
+          cd track-cleaning 
+          clasp push
