@@ -2,6 +2,7 @@
   "name": "STR scripts",
   "version": "1.0.0",
   "devDependencies": {
-    "eslint": "^8.50.0"
+    "eslint": "^8.50.0",
+    "prettier": "3.0.3"
   }
 }
