@@ -16,3 +16,7 @@ const LOGS_SHEET = 'Logs';
 const THERMOSTAT_SHEET = "Thermostat"
 ```
 And then change XXX according to the tutorial above
+
+### Result
+<img width="1624" alt="image" src="https://github.com/natalan/str-scripts/assets/276187/f8862f8a-d067-4509-b691-49ebb6b6d7c4">
+<img width="1624" alt="image" src="https://github.com/natalan/str-scripts/assets/276187/624441a7-8a33-40cc-8e38-b75fd2a99a57">
